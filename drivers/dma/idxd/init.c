@@ -248,8 +248,60 @@ static void idxd_read_table_offsets(struct idxd_device *idxd)
 	dev_dbg(dev, "IDXD Work Queue Config Offset: %#x\n", idxd->wqcfg_offset);
 	idxd->msix_perm_offset = offsets.msix_perm * IDXD_TABLE_MULT;
 	dev_dbg(dev, "IDXD MSIX Permission Offset: %#x\n", idxd->msix_perm_offset);
+	idxd->ims_offset = offsets.ims * IDXD_TABLE_MULT;
+	dev_dbg(dev, "IDXD IMS Offset: %#x\n", idxd->ims_offset);
 	idxd->perfmon_offset = offsets.perfmon * IDXD_TABLE_MULT;
 	dev_dbg(dev, "IDXD Perfmon Offset: %#x\n", idxd->perfmon_offset);
+}
+
+static int pci_find_dvsec(struct pci_dev *dev, u16 vendor, u16 id)
+{
+	u16 dev_vendor, dev_id;
+	int pos;
+
+	pos = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_DVSEC);
+	if (!pos)
+		return 0;
+
+	while (pos) {
+		pci_read_config_word(dev, pos + PCI_DVSEC_HEADER1, &dev_vendor);
+		pci_read_config_word(dev, pos + PCI_DVSEC_HEADER2, &dev_id);
+		if (dev_vendor == vendor && dev_id == id)
+			return pos;
+
+		pos = pci_find_next_ext_capability(dev, pos, PCI_EXT_CAP_ID_DVSEC);
+	}
+
+	return 0;
+}
+
+static bool siov_and_ims_supported(struct pci_dev *pdev)
+{
+	int pos;
+	u32 caps;
+
+	pos = pci_find_dvsec(pdev, PCI_VENDOR_ID_INTEL, PCI_DVSEC_ID_INTEL_SIOV);
+	if (!pos)
+		return false;
+
+	pci_read_config_dword(pdev, pos + PCI_DVSEC_INTEL_SIOV_CAP, &caps);
+	return (caps & PCI_DVSEC_INTEL_SIOV_CAP_IMS) ? true : false;
+}
+
+static void idxd_check_siov(struct idxd_device *idxd)
+{
+	struct pci_dev *pdev = idxd->pdev;
+
+	/* Check DVSEC cap for IMS support and also device hw cap */
+	if (siov_and_ims_supported(idxd->pdev) && idxd->hw.gen_cap.max_ims_mult) {
+		idxd->ims_size = idxd->hw.gen_cap.max_ims_mult * 256ULL;
+		dev_dbg(&pdev->dev, "IMS size: %u\n", idxd->ims_size);
+		set_bit(IDXD_FLAG_SIOV_SUPPORTED, &idxd->flags);
+		dev_dbg(&pdev->dev, "IMS supported for device\n");
+		return;
+	}
+
+	dev_dbg(&pdev->dev, "SIOV unsupported for device\n");
 }
 
 static void idxd_read_caps(struct idxd_device *idxd)
@@ -270,6 +322,7 @@ static void idxd_read_caps(struct idxd_device *idxd)
 	dev_dbg(dev, "max xfer size: %llu bytes\n", idxd->max_xfer_bytes);
 	idxd->max_batch_size = 1U << idxd->hw.gen_cap.max_batch_shift;
 	dev_dbg(dev, "max batch size: %u\n", idxd->max_batch_size);
+	idxd_check_siov(idxd);
 	if (idxd->hw.gen_cap.config_en)
 		set_bit(IDXD_FLAG_CONFIGURABLE, &idxd->flags);
 

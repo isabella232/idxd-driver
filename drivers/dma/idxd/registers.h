@@ -385,4 +385,11 @@ union wqcfg {
 #define GRPENGCFG_OFFSET(idxd_dev, n) ((idxd_dev)->grpcfg_offset + (n) * GRPCFG_SIZE + 32)
 #define GRPFLGCFG_OFFSET(idxd_dev, n) ((idxd_dev)->grpcfg_offset + (n) * GRPCFG_SIZE + 40)
 
+#define PCI_EXT_CAP_ID_DVSEC		0x23	/* Designated Vendor-Specific */
+#define PCI_DVSEC_HEADER1		0x4	/* Designated Vendor-Specific Header1 */
+#define PCI_DVSEC_HEADER2		0x8	/* Designated Vendor-Specific Header2 */
+#define PCI_DVSEC_ID_INTEL_SIOV		0x0005
+#define PCI_DVSEC_INTEL_SIOV_CAP	0x0014
+#define PCI_DVSEC_INTEL_SIOV_CAP_IMS	0X00000001
+
 #endif

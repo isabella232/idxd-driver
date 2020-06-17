@@ -98,6 +98,7 @@ int idxd_submit_desc(struct idxd_wq *wq, struct idxd_desc *desc)
 		return -EIO;
 
 	portal = wq->portal;
+
 	/*
 	 * The wmb() flushes writes to coherent DMA data before
 	 * possibly triggering a DMA read. The wmb() is necessary
