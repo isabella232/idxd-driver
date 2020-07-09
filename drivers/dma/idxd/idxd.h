@@ -147,6 +147,7 @@ struct idxd_hw {
 	union group_cap_reg group_cap;
 	union engine_cap_reg engine_cap;
 	struct opcap opcap;
+	u32 cmd_cap;
 };
 
 enum idxd_device_state {
@@ -213,6 +214,8 @@ struct idxd_device {
 	struct dma_device dma_dev;
 	struct workqueue_struct *wq;
 	struct work_struct work;
+
+	int *int_handles;
 };
 
 /* IDXD software descriptor */
@@ -232,6 +235,7 @@ struct idxd_desc {
 	struct list_head list;
 	int id;
 	int cpu;
+	unsigned int vector;
 	struct idxd_wq *wq;
 };
 
@@ -266,6 +270,11 @@ static inline bool device_swq_supported(struct idxd_device *idxd)
 enum idxd_portal_prot {
 	IDXD_PORTAL_UNLIMITED = 0,
 	IDXD_PORTAL_LIMITED,
+};
+
+enum idxd_interrupt_type {
+	IDXD_IRQ_MSIX = 0,
+	IDXD_IRQ_IMS,
 };
 
 static inline int idxd_get_wq_portal_offset(enum idxd_portal_prot prot)
@@ -335,6 +344,10 @@ int idxd_device_config(struct idxd_device *idxd);
 void idxd_device_wqs_clear_state(struct idxd_device *idxd);
 void idxd_device_drain_pasid(struct idxd_device *idxd, int pasid);
 int idxd_device_load_config(struct idxd_device *idxd);
+int idxd_device_request_int_handle(struct idxd_device *idxd, int idx, int *handle,
+				   enum idxd_interrupt_type irq_type);
+int idxd_device_release_int_handle(struct idxd_device *idxd, int handle,
+				   enum idxd_interrupt_type irq_type);
 
 /* work queue control */
 int idxd_wq_alloc_resources(struct idxd_wq *wq);
