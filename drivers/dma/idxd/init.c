@@ -221,6 +221,7 @@ static int idxd_setup_internals(struct idxd_device *idxd)
 		wq->wqcfg = devm_kzalloc(dev, idxd->wqcfg_size, GFP_KERNEL);
 		if (!wq->wqcfg)
 			return -ENOMEM;
+		INIT_LIST_HEAD(&wq->vdcm_list);
 	}
 
 	for (i = 0; i < idxd->max_engines; i++) {

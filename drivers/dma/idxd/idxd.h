@@ -131,6 +131,7 @@ struct idxd_wq {
 	u64 max_xfer_bytes;
 	u32 max_batch_size;
 	bool ats_dis;
+	struct list_head vdcm_list;
 };
 
 struct idxd_engine {
@@ -163,6 +164,7 @@ enum idxd_device_flag {
 	IDXD_FLAG_CMD_RUNNING,
 	IDXD_FLAG_PASID_ENABLED,
 	IDXD_FLAG_SIOV_SUPPORTED,
+	IDXD_FLAG_MDEV_ENABLED,
 };
 
 struct idxd_device {
@@ -271,6 +273,11 @@ static inline bool device_pasid_enabled(struct idxd_device *idxd)
 static inline bool device_swq_supported(struct idxd_device *idxd)
 {
 	return (support_enqcmd && device_pasid_enabled(idxd));
+}
+
+static inline bool device_mdev_enabled(struct idxd_device *idxd)
+{
+	return test_bit(IDXD_FLAG_MDEV_ENABLED, &idxd->flags);
 }
 
 enum idxd_portal_prot {
