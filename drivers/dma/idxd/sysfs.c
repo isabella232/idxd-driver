@@ -84,6 +84,7 @@ inline bool is_idxd_wq_mdev(struct idxd_wq *wq)
 {
 	return wq->type == IDXD_WQT_MDEV ? true : false;
 }
+EXPORT_SYMBOL_NS_GPL(is_idxd_wq_mdev, IDXD);
 
 static int idxd_config_bus_match(struct device *dev,
 				 struct device_driver *drv)
