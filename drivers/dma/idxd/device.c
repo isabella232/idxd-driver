@@ -252,6 +252,9 @@ int idxd_wq_disable(struct idxd_wq *wq, u32 *status)
 
 	dev_dbg(dev, "Disabling WQ %d\n", wq->id);
 
+	if (wq->state == IDXD_WQ_LOCKED)
+		goto out;
+
 	if (wq->state != IDXD_WQ_ENABLED) {
 		dev_dbg(dev, "WQ %d in wrong state: %d\n", wq->id, wq->state);
 		return 0;
@@ -268,6 +271,7 @@ int idxd_wq_disable(struct idxd_wq *wq, u32 *status)
 		return -ENXIO;
 	}
 
+ out:
 	wq->state = IDXD_WQ_DISABLED;
 	dev_dbg(dev, "WQ %d disabled\n", wq->id);
 	return 0;
