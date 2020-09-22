@@ -97,7 +97,7 @@ static void idxd_vdcm_init(struct vdcm_idxd *vidxd)
 	vidxd_mmio_init(vidxd);
 
 	if (wq_dedicated(wq) && wq->state == IDXD_WQ_ENABLED)
-		idxd_wq_disable(wq);
+		idxd_wq_disable(wq, NULL);
 }
 
 static void idxd_vdcm_release(struct mdev_device *mdev)

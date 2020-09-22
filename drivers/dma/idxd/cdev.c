@@ -160,7 +160,7 @@ static int idxd_cdev_release(struct inode *node, struct file *filep)
 			if (rc < 0)
 				dev_err(dev, "wq disable pasid failed.\n");
 		} else {
-			idxd_wq_drain(wq);
+			idxd_wq_drain(wq, NULL);
 		}
 	}
 

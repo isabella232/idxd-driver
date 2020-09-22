@@ -235,7 +235,7 @@ static int idxd_config_bus_probe(struct device *dev)
 			return rc;
 		}
 
-		rc = idxd_wq_enable(wq);
+		rc = idxd_wq_enable(wq, NULL);
 		if (rc < 0) {
 			mutex_unlock(&wq->wq_lock);
 			dev_warn(dev, "WQ %d enabling failed: %d\n",
@@ -246,7 +246,7 @@ static int idxd_config_bus_probe(struct device *dev)
 		rc = idxd_wq_map_portal(wq);
 		if (rc < 0) {
 			dev_warn(dev, "wq portal mapping failed: %d\n", rc);
-			rc = idxd_wq_disable(wq);
+			rc = idxd_wq_disable(wq, NULL);
 			if (rc < 0)
 				dev_warn(dev, "IDXD wq disable failed\n");
 			mutex_unlock(&wq->wq_lock);
@@ -304,8 +304,8 @@ static void disable_wq(struct idxd_wq *wq)
 
 	idxd_wq_unmap_portal(wq);
 
-	idxd_wq_drain(wq);
-	rc = idxd_wq_disable(wq);
+	idxd_wq_drain(wq, NULL);
+	rc = idxd_wq_disable(wq, NULL);
 
 	idxd_wq_free_resources(wq);
 	wq->client_count = 0;
