@@ -52,7 +52,7 @@ static char idxd_iax_1dwq_name[IDXD_MDEV_NAME_LEN];
 static int idxd_vdcm_set_irqs(struct vdcm_idxd *vidxd, uint32_t flags, unsigned int index,
 			      unsigned int start, unsigned int count, void *data);
 
-static int idxd_mdev_get_pasid(struct mdev_device *mdev, u32 *pasid)
+int idxd_mdev_get_pasid(struct mdev_device *mdev, u32 *pasid)
 {
 	unsigned long ioasid;
 	int rc;

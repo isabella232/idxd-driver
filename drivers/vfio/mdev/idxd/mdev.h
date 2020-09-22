@@ -38,6 +38,7 @@ struct ims_irq_entry {
 	bool irq_set;
 	int id;
 	int irq;
+	int ims_idx;
 };
 
 struct idxd_vdev {
@@ -112,5 +113,7 @@ static inline u64 get_reg_val(void *buf, int size)
 }
 
 #define auxdev_to_idxd(_aux_dev) container_of(_aux_dev, struct idxd_device, auxdev)
+
+int idxd_mdev_get_pasid(struct mdev_device *mdev, u32 *pasid);
 
 #endif

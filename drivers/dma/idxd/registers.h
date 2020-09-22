@@ -120,7 +120,8 @@ union gencfg_reg {
 union genctrl_reg {
 	struct {
 		u32 softerr_int_en:1;
-		u32 rsvd:31;
+		u32 halt_state_int_en:1;
+		u32 rsvd:30;
 	};
 	u32 bits;
 } __packed;
@@ -142,6 +143,8 @@ enum idxd_device_status_state {
 	IDXD_DEVICE_STATE_HALT,
 };
 
+#define IDXD_GENSTATS_MASK		0x03
+
 enum idxd_device_reset_type {
 	IDXD_DEVICE_RESET_SOFTWARE = 0,
 	IDXD_DEVICE_RESET_FLR,
@@ -154,6 +157,7 @@ enum idxd_device_reset_type {
 #define IDXD_INTC_CMD			0x02
 #define IDXD_INTC_OCCUPY			0x04
 #define IDXD_INTC_PERFMON_OVFL		0x08
+#define IDXD_INTC_HALT_STATE		0x10
 
 #define IDXD_CMD_OFFSET			0xa0
 union idxd_command_reg {
@@ -165,6 +169,7 @@ union idxd_command_reg {
 	};
 	u32 bits;
 } __packed;
+#define IDXD_CMD_INT_MASK		0x80000000
 
 enum idxd_cmd {
 	IDXD_CMD_ENABLE_DEVICE = 1,
@@ -228,10 +233,11 @@ enum idxd_cmdsts_err {
 	/* disable device errors */
 	IDXD_CMDSTS_ERR_DIS_DEV_EN = 0x31,
 	/* disable WQ, drain WQ, abort WQ, reset WQ */
-	IDXD_CMDSTS_ERR_DEV_NOT_EN,
+	IDXD_CMDSTS_ERR_WQ_NOT_EN,
 	/* request interrupt handle */
 	IDXD_CMDSTS_ERR_INVAL_INT_IDX = 0x41,
 	IDXD_CMDSTS_ERR_NO_HANDLE,
+	IDXD_CMDSTS_ERR_INVAL_INT_IDX_RELEASE,
 };
 
 #define IDXD_CMDCAP_OFFSET		0xb0
@@ -352,6 +358,12 @@ union wqcfg {
 	};
 	u32 bits[8];
 } __packed;
+
+enum idxd_wq_hw_state {
+	IDXD_WQ_DEV_DISABLED = 0,
+	IDXD_WQ_DEV_ENABLED,
+	IDXD_WQ_DEV_BUSY,
+};
 
 #define WQCFG_PASID_IDX		2
 #define WQCFG_PRIV_IDX		2
