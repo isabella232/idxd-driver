@@ -293,9 +293,16 @@ enum idxd_interrupt_type {
 	IDXD_IRQ_IMS,
 };
 
+struct aux_mdev_ops {
+	void (*notify_error)(struct idxd_wq *wq);
+};
+
 struct idxd_mdev_aux_drv {
 	        struct auxiliary_driver auxiliary_drv;
+		const struct aux_mdev_ops ops;
 };
+
+#define to_mdev_aux_drv(_aux_drv) container_of(_aux_drv, struct idxd_mdev_aux_drv, auxiliary_drv)
 
 static inline int idxd_get_wq_portal_offset(enum idxd_portal_prot prot,
 					    enum idxd_interrupt_type irq_type)

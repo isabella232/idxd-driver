@@ -23,5 +23,6 @@ int vidxd_send_interrupt(struct ims_irq_entry *iie);
 int vidxd_setup_ims_entries(struct vdcm_idxd *vidxd);
 void vidxd_free_ims_entries(struct vdcm_idxd *vidxd);
 void vidxd_do_command(struct vdcm_idxd *vidxd, u32 val);
+void idxd_wq_vidxd_send_errors(struct idxd_wq *wq);
 
 #endif

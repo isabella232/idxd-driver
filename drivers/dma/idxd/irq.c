@@ -120,6 +120,8 @@ irqreturn_t idxd_misc_thread(int vec, void *data)
 	u32 cause, val = 0;
 	int i;
 	bool err = false;
+	struct auxiliary_driver *auxdrv = to_auxiliary_drv(idxd->auxdev.dev.driver);
+	struct idxd_mdev_aux_drv *mdevdrv = to_mdev_aux_drv(auxdrv);
 
 	cause = ioread32(idxd->reg_base + IDXD_INTCAUSE_OFFSET);
 	iowrite32(cause, idxd->reg_base + IDXD_INTCAUSE_OFFSET);
@@ -137,6 +139,8 @@ irqreturn_t idxd_misc_thread(int vec, void *data)
 
 			if (wq->type == IDXD_WQT_USER)
 				wake_up_interruptible(&wq->idxd_cdev.err_queue);
+			else if (wq->type == IDXD_WQT_MDEV)
+				mdevdrv->ops.notify_error(wq);
 		} else {
 			int i;
 
@@ -145,6 +149,8 @@ irqreturn_t idxd_misc_thread(int vec, void *data)
 
 				if (wq->type == IDXD_WQT_USER)
 					wake_up_interruptible(&wq->idxd_cdev.err_queue);
+				else if (wq->type == IDXD_WQT_MDEV)
+					mdevdrv->ops.notify_error(wq);
 			}
 		}
 

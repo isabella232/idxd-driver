@@ -980,3 +980,35 @@ void vidxd_do_command(struct vdcm_idxd *vidxd, u32 val)
 		break;
 	}
 }
+
+static void vidxd_send_errors(struct vdcm_idxd *vidxd)
+{
+	struct idxd_device *idxd = vidxd->idxd;
+	u8 *bar0 = vidxd->bar0;
+	union sw_err_reg *swerr = (union sw_err_reg *)(bar0 + IDXD_SWERR_OFFSET);
+	union genctrl_reg *genctrl = (union genctrl_reg *)(bar0 + IDXD_GENCTRL_OFFSET);
+	u32 *intcause = (u32 *)(bar0 + IDXD_INTCAUSE_OFFSET);
+	int i;
+
+	if (swerr->valid) {
+		if (!swerr->overflow)
+			swerr->overflow = 1;
+		return;
+	}
+
+	lockdep_assert_held(&idxd->dev_lock);
+	for (i = 0; i < 4; i++)
+		swerr->bits[i] = idxd->sw_err.bits[i];
+
+	*intcause |= IDXD_INTC_ERR;
+	if (genctrl->softerr_int_en)
+		vidxd_send_interrupt(&vidxd->irq_entries[0]);
+}
+
+void idxd_wq_vidxd_send_errors(struct idxd_wq *wq)
+{
+	struct vdcm_idxd *vidxd;
+
+	list_for_each_entry(vidxd, &wq->vdcm_list, list)
+		vidxd_send_errors(vidxd);
+}

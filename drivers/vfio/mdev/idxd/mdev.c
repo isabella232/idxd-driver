@@ -1226,6 +1226,10 @@ static const struct auxiliary_device_id idxd_mdev_auxbus_id_table[] = {
 };
 MODULE_DEVICE_TABLE(auxiliary, idxd_mdev_auxbus_id_table);
 
+const struct aux_mdev_ops aux_mdev_ops = {
+	.notify_error = idxd_wq_vidxd_send_errors,
+};
+
 static struct idxd_mdev_aux_drv idxd_mdev_aux_drv = {
 	.auxiliary_drv = {
 		.id_table = idxd_mdev_auxbus_id_table,
@@ -1233,6 +1237,7 @@ static struct idxd_mdev_aux_drv idxd_mdev_aux_drv = {
 		.remove = idxd_mdev_aux_remove,
 		.shutdown = idxd_mdev_aux_shutdown,
 	},
+	.ops = aux_mdev_ops,
 };
 
 static int idxd_mdev_auxdev_drv_register(struct idxd_mdev_aux_drv *drv)
