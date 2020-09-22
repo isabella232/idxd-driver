@@ -8884,6 +8884,7 @@ INTEL IADX DRIVER
 M:	Dave Jiang <dave.jiang@intel.com>
 L:	dmaengine@vger.kernel.org
 S:	Supported
+F:	Documentation/driver-api/vfio/mdev-idxd.rst
 F:	drivers/dma/idxd/*
 F:	include/uapi/linux/idxd.h
 
