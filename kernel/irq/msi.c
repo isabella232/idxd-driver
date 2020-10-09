@@ -536,6 +536,7 @@ int msi_domain_alloc_irqs(struct irq_domain *domain, struct device *dev,
 
 	return ops->domain_alloc_irqs(domain, dev, nvec);
 }
+EXPORT_SYMBOL_GPL(msi_domain_alloc_irqs);
 
 void __msi_domain_free_irqs(struct irq_domain *domain, struct device *dev)
 {
@@ -572,6 +573,7 @@ void msi_domain_free_irqs(struct irq_domain *domain, struct device *dev)
 
 	return ops->domain_free_irqs(domain, dev);
 }
+EXPORT_SYMBOL_GPL(msi_domain_free_irqs);
 
 /**
  * msi_get_domain_info - Get the MSI interrupt domain info for @domain

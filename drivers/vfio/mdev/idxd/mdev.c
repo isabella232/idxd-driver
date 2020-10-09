@@ -1123,6 +1123,7 @@ static int alloc_supported_types(struct idxd_device *idxd)
 int idxd_mdev_host_init(struct idxd_device *idxd)
 {
 	struct device *dev = &idxd->pdev->dev;
+	struct ims_array_info ims_info;
 	int rc;
 
 	if (!test_bit(IDXD_FLAG_SIOV_SUPPORTED, &idxd->flags))
@@ -1144,6 +1145,15 @@ int idxd_mdev_host_init(struct idxd_device *idxd)
 		return -EOPNOTSUPP;
 	}
 
+	ims_info.max_slots = idxd->ims_size;
+	ims_info.slots = idxd->reg_base + idxd->ims_offset;
+	idxd->ims_domain = pci_ims_array_create_msi_irq_domain(idxd->pdev, &ims_info);
+	if (!idxd->ims_domain) {
+		dev_warn(dev, "Fail to acquire IMS domain\n");
+		iommu_dev_disable_feature(dev, IOMMU_DEV_FEAT_AUX);
+		return -ENODEV;
+	}
+
 	return mdev_register_device(dev, &idxd_vdcm_ops);
 }
 
@@ -1151,6 +1161,8 @@ void idxd_mdev_host_release(struct idxd_device *idxd)
 {
 	struct device *dev = &idxd->pdev->dev;
 	int rc;
+
+	irq_domain_remove(idxd->ims_domain);
 
 	mdev_unregister_device(dev);
 	if (iommu_dev_has_feature(dev, IOMMU_DEV_FEAT_AUX)) {

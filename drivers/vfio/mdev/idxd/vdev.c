@@ -16,6 +16,7 @@
 #include <linux/intel-svm.h>
 #include <linux/kvm_host.h>
 #include <linux/eventfd.h>
+#include <linux/irqchip/irq-ims-msi.h>
 #include <uapi/linux/idxd.h>
 #include "registers.h"
 #include "idxd.h"
@@ -871,6 +872,47 @@ static void vidxd_wq_disable(struct vdcm_idxd *vidxd, int wq_id_mask)
 	idxd_complete_command(vidxd, IDXD_CMDSTS_SUCCESS);
 }
 
+void vidxd_free_ims_entries(struct vdcm_idxd *vidxd)
+{
+	struct mdev_device *mdev = vidxd->vdev.mdev;
+	struct device *dev = mdev_dev(mdev);
+
+	msi_domain_free_irqs(dev_get_msi_domain(dev), dev);
+}
+
+int vidxd_setup_ims_entries(struct vdcm_idxd *vidxd)
+{
+	struct irq_domain *irq_domain;
+	struct idxd_device *idxd = vidxd->idxd;
+	struct mdev_device *mdev = vidxd->vdev.mdev;
+	struct device *dev = mdev_dev(mdev);
+	struct msi_desc *entry;
+	struct ims_irq_entry *irq_entry;
+	int rc, i;
+
+	irq_domain = idxd->ims_domain;
+	dev_set_msi_domain(dev, irq_domain);
+
+	/* We are allocate MAX_MSIX - 1 is because vector 0 is emulated and not IMS backed. */
+	rc = msi_domain_alloc_irqs(irq_domain, dev, VIDXD_MAX_MSIX_VECS - 1);
+	if (rc < 0)
+		return rc;
+	/*
+	 * The first MSIX vector on the guest is emulated and not backed by IMS. To make matters
+	 * simple the ims entries include the emulated vector. Here the code starts at index
+	 * 1 to setup all the IMS backed vectors.
+	 */
+	i = 1;
+	for_each_msi_entry(entry, dev) {
+		irq_entry = &vidxd->irq_entries[i];
+		irq_entry->ims_idx = entry->device_msi.hwirq;
+		irq_entry->irq = entry->irq;
+		i++;
+	}
+
+	return 0;
+}
+
 static bool command_supported(struct vdcm_idxd *vidxd, u32 cmd)
 {
 	struct idxd_device *idxd = vidxd->idxd;
@@ -937,15 +979,4 @@ void vidxd_do_command(struct vdcm_idxd *vidxd, u32 val)
 		idxd_complete_command(vidxd, IDXD_CMDSTS_INVAL_CMD);
 		break;
 	}
-}
-
-int vidxd_setup_ims_entries(struct vdcm_idxd *vidxd)
-{
-	/* PLACEHOLDER */
-	return 0;
-}
-
-void vidxd_free_ims_entries(struct vdcm_idxd *vidxd)
-{
-	/* PLACEHOLDER */
 }
