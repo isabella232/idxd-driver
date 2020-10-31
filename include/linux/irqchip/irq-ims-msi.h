@@ -24,8 +24,29 @@ struct ims_slot {
 	u32	ctrl;
 } __packed;
 
+/*
+ * The IMS control word utilizes bit 0-2 for interrupt control. The remaining
+ * bits can contain auxiliary data.
+ */
+#define IMS_CONTROL_WORD_IRQMASK	GENMASK(2, 0)
+#define IMS_CONTROL_WORD_AUXMASK	GENMASK(31, 3)
+
+/* Auxiliary control word data related defines */
+enum {
+	IMS_AUXDATA_CONTROL_WORD,
+};
+
 /* Bit to mask the interrupt in ims_hw_slot::ctrl */
 #define IMS_CTRL_VECTOR_MASKBIT		BIT(0)
+#define IMS_CTRL_PASID_ENABLE           BIT(3)
+#define IMS_CTRL_PASID_SHIFT            12
+
+static inline u32 ims_ctrl_pasid_aux(unsigned int pasid, bool enable)
+{
+	u32 auxval = pasid << IMS_CTRL_PASID_SHIFT;
+
+	return enable ? auxval | IMS_CTRL_PASID_ENABLE : auxval;
+}
 
 /**
  * struct ims_array_info - Information to create an IMS array domain
