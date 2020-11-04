@@ -410,6 +410,49 @@ static void idxd_disable_system_pasid(struct idxd_device *idxd)
 	idxd->sva = NULL;
 }
 
+static void idxd_release_mdev_auxdev(struct idxd_device *idxd)
+{
+	if (!IS_ENABLED(CONFIG_VFIO_MDEV_IDXD))
+		return;
+
+	auxiliary_device_delete(&idxd->auxdev);
+	auxiliary_device_uninit(&idxd->auxdev);
+}
+
+static void idxd_auxdev_release(struct device *dev)
+{
+}
+
+static int idxd_setup_mdev_auxdev(struct idxd_device *idxd)
+{
+	struct auxiliary_device *auxdev;
+	struct device *dev = &idxd->pdev->dev;
+	int rc;
+
+	if (!IS_ENABLED(CONFIG_VFIO_MDEV_IDXD))
+		return 0;
+
+	auxdev = &idxd->auxdev;
+	auxdev->name = "mdev";
+	auxdev->dev.parent = dev;
+	auxdev->dev.release = idxd_auxdev_release;
+	auxdev->id = idxd->id;
+
+	rc = auxiliary_device_init(auxdev);
+	if (rc < 0) {
+		dev_err(dev, "Failed to init aux dev: %d\n", rc);
+		return rc;
+	}
+
+	rc = auxiliary_device_add(auxdev);
+	if (rc < 0) {
+		dev_err(dev, "Failed to add aux dev: %d\n", rc);
+		return rc;
+	}
+
+	return 0;
+}
+
 static int idxd_probe(struct idxd_device *idxd)
 {
 	struct pci_dev *pdev = idxd->pdev;
@@ -457,11 +500,19 @@ static int idxd_probe(struct idxd_device *idxd)
 		goto err_idr_fail;
 	}
 
+	rc = idxd_setup_mdev_auxdev(idxd);
+	if (rc < 0)
+		goto err_auxdev_fail;
+
 	idxd->major = idxd_cdev_get_major(idxd);
 
 	dev_dbg(dev, "IDXD device %d probed successfully\n", idxd->id);
 	return 0;
 
+ err_auxdev_fail:
+	mutex_lock(&idxd_idr_lock);
+	idr_remove(&idxd_idrs[idxd->type], idxd->id);
+	mutex_unlock(&idxd_idr_lock);
  err_idr_fail:
 	idxd_mask_error_interrupts(idxd);
 	idxd_mask_msix_vectors(idxd);
@@ -620,6 +671,7 @@ static void idxd_remove(struct pci_dev *pdev)
 	dev_dbg(&pdev->dev, "%s called\n", __func__);
 	idxd_cleanup_sysfs(idxd);
 	idxd_shutdown(pdev);
+	idxd_release_mdev_auxdev(idxd);
 	if (device_pasid_enabled(idxd))
 		idxd_disable_system_pasid(idxd);
 	mutex_lock(&idxd_idr_lock);

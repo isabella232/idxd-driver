@@ -16,3 +16,11 @@ config VFIO_MDEV_DEVICE
 	default n
 	help
 	  VFIO based driver for Mediated devices.
+
+config VFIO_MDEV_IDXD
+	tristate "VFIO Mediated device driver for Intel IDXD"
+	depends on VFIO && VFIO_MDEV
+	select AUXILIARY_BUS
+	default n
+	help
+	  VFIO based mediated device driver for Intel Accelerator Devices driver.

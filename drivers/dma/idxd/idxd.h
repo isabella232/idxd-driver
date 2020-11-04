@@ -8,6 +8,7 @@
 #include <linux/percpu-rwsem.h>
 #include <linux/wait.h>
 #include <linux/cdev.h>
+#include <linux/auxiliary_bus.h>
 #include "registers.h"
 
 #define IDXD_DRIVER_VERSION	"1.00"
@@ -219,6 +220,8 @@ struct idxd_device {
 	struct work_struct work;
 
 	int *int_handles;
+
+	struct auxiliary_device auxdev;
 };
 
 /* IDXD software descriptor */
@@ -278,6 +281,10 @@ enum idxd_portal_prot {
 enum idxd_interrupt_type {
 	IDXD_IRQ_MSIX = 0,
 	IDXD_IRQ_IMS,
+};
+
+struct idxd_mdev_aux_drv {
+	        struct auxiliary_driver auxiliary_drv;
 };
 
 static inline int idxd_get_wq_portal_offset(enum idxd_portal_prot prot,
