@@ -22,6 +22,7 @@ config VFIO_MDEV_IDXD
 	depends on VFIO && VFIO_MDEV
 	select AUXILIARY_BUS
 	select IMS_MSI_ARRAY
+	select IRQ_BYPASS_MANAGER
 	default n
 	help
 	  VFIO based mediated device driver for Intel Accelerator Devices driver.

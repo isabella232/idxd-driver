@@ -583,9 +583,13 @@ static int msix_trigger_unregister(struct vdcm_idxd *vidxd, int index)
 
 	dev_dbg(dev, "disable MSIX trigger %d\n", index);
 	if (index) {
+		struct irq_bypass_producer *producer;
 		u32 auxval;
 
+		producer = &vidxd->vdev.producer[index];
+		irq_bypass_unregister_producer(producer);
 		irq_entry = &vidxd->irq_entries[index];
+
 		if (irq_entry->irq_set) {
 			free_irq(irq_entry->irq, irq_entry);
 			irq_entry->irq_set = false;
@@ -622,9 +626,10 @@ static int msix_trigger_register(struct vdcm_idxd *vidxd, u32 fd, int index)
 	}
 
 	if (index) {
-		u32 pasid;
-		u32 auxval;
+		struct irq_bypass_producer *producer;
+		u32 pasid, auxval;
 
+		producer = &vidxd->vdev.producer[index];
 		irq_entry = &vidxd->irq_entries[index];
 		rc = idxd_mdev_get_pasid(mdev, &pasid);
 		if (rc < 0)
@@ -650,6 +655,14 @@ static int msix_trigger_register(struct vdcm_idxd *vidxd, u32 fd, int index)
 			irq_set_auxdata(irq_entry->irq, IMS_AUXDATA_CONTROL_WORD, auxval);
 			return rc;
 		}
+
+		producer->token = trigger;
+		producer->irq = irq_entry->irq;
+		rc = irq_bypass_register_producer(producer);
+		if (unlikely(rc))
+			dev_info(dev, "irq bypass producer (token %p) registration failed: %d\n",
+				 producer->token, rc);
+
 		irq_entry->irq_set = true;
 	}
 

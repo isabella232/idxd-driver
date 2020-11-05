@@ -44,6 +44,7 @@ struct ims_irq_entry {
 struct idxd_vdev {
 	struct mdev_device *mdev;
 	struct eventfd_ctx *msix_trigger[VIDXD_MAX_MSIX_ENTRIES];
+	struct irq_bypass_producer producer[VIDXD_MAX_MSIX_ENTRIES];
 };
 
 struct vdcm_idxd {
