@@ -2331,6 +2331,40 @@ int vfio_unregister_notifier(struct device *dev, enum vfio_notify_type type,
 }
 EXPORT_SYMBOL(vfio_unregister_notifier);
 
+int vfio_subdev_ioasid(struct device *dev, unsigned long *id)
+{
+	struct vfio_container *container;
+	struct vfio_iommu_driver *driver;
+	struct vfio_group *group;
+	int ret;
+
+	if (!dev || !id)
+		return -EINVAL;
+
+	group = vfio_group_get_from_dev(dev);
+	if (!group)
+		return -ENODEV;
+
+	ret = vfio_group_add_container_user(group);
+	if (ret)
+		goto out;
+
+	container = group->container;
+	driver = container->iommu_driver;
+	if (likely(driver && driver->ops->subdev_ioasid))
+		ret = driver->ops->subdev_ioasid(container->iommu_data,
+						 group->iommu_group, id);
+	else
+		ret = -ENOTTY;
+
+	vfio_group_try_dissolve_container(group);
+
+out:
+	vfio_group_put(group);
+	return ret;
+}
+EXPORT_SYMBOL(vfio_subdev_ioasid);
+
 /**
  * Module/class support
  */

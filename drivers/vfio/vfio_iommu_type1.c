@@ -2980,6 +2980,62 @@ static int vfio_iommu_type1_dma_rw(void *iommu_data, dma_addr_t user_iova,
 	return ret;
 }
 
+static int vfio_iommu_type1_subdev_ioasid(void *iommu_data,
+					  struct iommu_group *iommu_group,
+					  unsigned long *id)
+{
+	struct vfio_iommu *iommu = iommu_data;
+	struct vfio_domain *domain = NULL, *d;
+	struct device *iommu_device = NULL;
+	struct bus_type *bus = NULL;
+	int ret;
+
+	if (!iommu || !iommu_group || !id)
+		return -EINVAL;
+
+	mutex_lock(&iommu->lock);
+	ret = iommu_group_for_each_dev(iommu_group, &bus, vfio_bus_type);
+	if (ret)
+		goto out;
+
+	if (!vfio_bus_is_mdev(bus)) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ret = iommu_group_for_each_dev(iommu_group, &iommu_device,
+				       vfio_mdev_iommu_device);
+	if (ret || !iommu_device ||
+	    !iommu_dev_feature_enabled(iommu_device, IOMMU_DEV_FEAT_AUX)) {
+		ret = -ENODEV;
+		goto out;
+	}
+
+	list_for_each_entry(d, &iommu->domain_list, next) {
+		if (find_iommu_group(d, iommu_group)) {
+			domain = d;
+			break;
+		}
+	}
+
+	if (!domain) {
+		ret = -ENODEV;
+		goto out;
+	}
+
+	ret = iommu_aux_get_pasid(domain->domain, iommu_device);
+	if (ret > 0) {
+		*id = ret;
+		ret = 0;
+	} else {
+		ret = -ENOSPC;
+	}
+
+out:
+	mutex_unlock(&iommu->lock);
+	return ret;
+}
+
 static const struct vfio_iommu_driver_ops vfio_iommu_driver_ops_type1 = {
 	.name			= "vfio-iommu-type1",
 	.owner			= THIS_MODULE,
@@ -2993,6 +3049,7 @@ static const struct vfio_iommu_driver_ops vfio_iommu_driver_ops_type1 = {
 	.register_notifier	= vfio_iommu_type1_register_notifier,
 	.unregister_notifier	= vfio_iommu_type1_unregister_notifier,
 	.dma_rw			= vfio_iommu_type1_dma_rw,
+	.subdev_ioasid		= vfio_iommu_type1_subdev_ioasid,
 };
 
 static int __init vfio_iommu_type1_init(void)
